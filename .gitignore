@@ -1,0 +1,6 @@
+node_modules
+out
+.clj-kondo/.cache/
+.lsp/.cache
+.shadow-cljs
+.cpcache

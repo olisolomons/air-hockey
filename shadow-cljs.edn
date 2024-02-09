@@ -1,0 +1,5 @@
+{:source-paths ["src"]
+ :dependencies []
+ :builds {:cf {:target :esm
+               :output-dir "out"
+               :modules {:cljs-cf {:exports {handler cljs-cloudflare-discord.core/handler}}}}}}
