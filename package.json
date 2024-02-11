@@ -8,7 +8,8 @@
     "start": "wrangler dev"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^3.0.0",
+    "discord-interactions": "^3.4.0"
   },
   "dependencies": {
     "shadow-cljs": "^2.27.3",

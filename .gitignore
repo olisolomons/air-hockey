@@ -4,3 +4,4 @@ out
 .lsp/.cache
 .shadow-cljs
 .cpcache
+.env
