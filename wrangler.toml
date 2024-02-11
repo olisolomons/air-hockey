@@ -2,6 +2,9 @@ name = "cljs-cloudflare-discord"
 main = "src/worker.js"
 compatibility_date = "2024-02-08"
 
+kv_namespaces = [
+    { binding = "DISCORD_KV", id = "9a3a2e9452e4415580b1183ae1b6b5cf" }
+]
 # Variable bindings. These are arbitrary, plaintext strings (similar to environment variables)
 # Note: Use secrets to store sensitive data.
 # Docs: https://developers.cloudflare.com/workers/platform/environment-variables
