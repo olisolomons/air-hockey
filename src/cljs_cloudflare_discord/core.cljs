@@ -7,6 +7,12 @@
 (def interaction-types (set/map-invert (enum->map di/InteractionType)))
 (def interaction-responses (enum->map di/InteractionResponseType))
 
+(defmulti handle-slash-command (fn [data _ _] (keyword (:name data))))
+
+(defmethod handle-slash-command :increment
+  [_data _request _env]
+  {:content "1"})
+
 (defn valid-discord-request? [request body env]
   (let [signature (-> request .-headers (.get "x-signature-ed25519"))
         timestamp (-> request .-headers (.get "x-signature-timestamp"))
@@ -16,9 +22,11 @@
          timestamp
          (di/verifyKey body signature timestamp public-key))))
 
-(defn handle-discord-request [request interaction _env]
+(defn handle-discord-request [request interaction env]
   (case (->> interaction :type (get interaction-types))
-    :PING {:type :PONG}))
+    :PING {:type :PONG}
+    :APPLICATION_COMMAND {:type :CHANNEL_MESSAGE_WITH_SOURCE
+                          :data (handle-slash-command (:data interaction) request env)}))
 
 (defn json-response [body opts]
   (js/Response. (js/JSON.stringify (clj->js body))

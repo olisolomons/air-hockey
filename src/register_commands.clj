@@ -13,12 +13,16 @@
 
 (def url (str "https://discord.com/api/v10/applications/" application-id "/commands"))
 
+(def commands
+  [{:name "increment"
+    :description "Increment"}])
+
 (defn ^:export register [& _args]
   (let [response
         (http/put url
                   {:headers {"Content-Type" "application/json"
                              "Authorization" (str "Bot " token)}
-                   :body (j/write-value-as-string [])})]
+                   :body (j/write-value-as-string commands)})]
     (if (= (:status response) 200)
       (do (println "Registered all commands")
           (prn (j/read-value (:body response))))
