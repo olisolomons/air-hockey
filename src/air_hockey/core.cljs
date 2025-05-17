@@ -1,0 +1,109 @@
+(ns air-hockey.core
+  (:require
+   [quil.core :as q :include-macros true]
+   [quil.middleware :as m]
+   [quil.sketch :as sketch]
+   [air-hockey.game :as game]
+   [air-hockey.sketch-functions :as sf]))
+
+(defn- get-canvas-size []
+  [js/window.innerWidth js/window.innerHeight])
+
+(defn prevent-defaults []
+  (.addEventListener
+   js/document.body
+   "keydown"
+   (fn [e]
+     (when (= (.-keyCode e) 9)
+       ;; stop tab key changing focus
+       (.preventDefault e)))))
+
+(defn- resize-listener []
+  (let [applet (sketch/current-applet)]
+    (.addEventListener
+     js/window
+     "resize"
+     (fn [_e]
+       (sketch/with-sketch applet
+         (let [canvas-size (get-canvas-size)]
+           (q/resize-sketch canvas-size canvas-size)
+           (swap! (q/state-atom)
+                  (comp sf/add-derived-state
+                        #(assoc % :canvas-size canvas-size)))
+           ;; magic incantation to stop a weird bug
+           ;; where the scene appeared super zoomed-in
+           ;; sometimes.
+           (q/pixel-density (q/display-density))))))))
+
+(defn- add-touch-listener []
+  (let [applet (sketch/current-applet)]
+    (.addEventListener
+     (-> js/document (.querySelector ".p5Canvas"))
+     "touchstart"
+     (fn [e]
+       (let [touch (aget (.-changedTouches e) 0)
+             rect (.getBoundingClientRect (.-target touch))]
+         (sketch/with-sketch applet
+           (swap! (q/state-atom)
+                  (fn [state]
+                    (sf/mouse-pressed
+                     state
+                     {:x (- (.-clientX touch) (.-left rect))
+                      :y (- (.-clientY touch) (.-top rect))
+                      :button :left})))))
+       (.preventDefault e)))
+    (.addEventListener
+     (-> js/document (.querySelector ".p5Canvas"))
+     "touchend"
+     (fn [e]
+       (let [touch (aget (.-changedTouches e) 0)
+             rect (.getBoundingClientRect (.-target touch))]
+         (sketch/with-sketch applet
+           (swap! (q/state-atom)
+                  (fn [state]
+                    (sf/mouse-released
+                     state
+                     {:x (- (.-clientX touch) (.-left rect))
+                      :y (- (.-clientY touch) (.-top rect))})))))
+       (.preventDefault e)))
+    (.addEventListener
+     (-> js/document (.querySelector ".p5Canvas"))
+     "touchmove"
+     (fn [e]
+       (let [touch (aget (.-changedTouches e) 0)
+             rect (.getBoundingClientRect (.-target touch))]
+         (sketch/with-sketch applet
+           (swap! (q/state-atom)
+                  (fn [state]
+                    (sf/mouse-dragged
+                     state
+                     {:x (- (.-clientX touch) (.-left rect))
+                      :y (- (.-clientY touch) (.-top rect))
+                      :button :left})))))
+       (.preventDefault e)))))
+
+(defn setup []
+  (add-touch-listener)
+  (prevent-defaults)
+  (resize-listener)
+  (q/frame-rate 60)
+  (q/color-mode :rgb)
+  (game/mk-state (get-canvas-size)))
+
+(defn draw-state-wrapped [state]
+  (q/background 15)
+  (sf/draw-state state))
+
+(declare the-sketch)
+(defn -main []
+  (q/defsketch the-sketch
+    :host "app"
+    :size (get-canvas-size)
+    :setup setup
+    :update sf/update-state
+    :draw draw-state-wrapped
+    :mouse-pressed sf/mouse-pressed
+    :mouse-released sf/mouse-released
+    :mouse-dragged sf/mouse-dragged
+    :key-pressed sf/key-pressed
+    :middleware [m/fun-mode]))

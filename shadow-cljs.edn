@@ -1,5 +1,5 @@
-{:source-paths ["src"]
- :dependencies []
- :builds {:cf {:target :esm
-               :output-dir "out"
-               :modules {:cljs-cf {:exports {handler cljs-cloudflare-discord.core/handler}}}}}}
+{:deps true
+ :dev-http {8000 "public"}
+ :builds {:app {:target :browser
+                :output-dir "public"
+                :modules {:main {:init-fn air-hockey.core/-main}}}}}

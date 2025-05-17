@@ -1,18 +1,12 @@
 {
-  "name": "cljs-cloudflare-discord",
+  "name": "air-hockey",
   "version": "0.0.0",
   "private": true,
-  "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "start": "wrangler dev"
-  },
   "devDependencies": {
-    "wrangler": "^3.0.0",
-    "discord-interactions": "^3.4.0"
   },
   "dependencies": {
     "shadow-cljs": "^2.27.3",
-    "source-map-support": "^0.5.21"
+    "source-map-support": "^0.5.21",
+    "p5": "^1.7.0"
   }
 }

@@ -1,8 +1,6 @@
 node_modules
-out
+public
 .clj-kondo/.cache/
 .lsp/.cache
 .shadow-cljs
 .cpcache
-.env
-.wrangler

@@ -1,5 +1,5 @@
 build:
-	npx shadow-cljs release :cf
+	npx shadow-cljs release :app
 
-register:
-	env $$(cat .env | xargs) clj -X register-commands/register
+repl:
+	clj -M:dev:nrepl -m nrepl.cmdline --middleware "[shadow.cljs.devtools.server.nrepl/middleware]"
