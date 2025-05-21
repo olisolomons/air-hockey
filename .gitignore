@@ -4,3 +4,4 @@ public
 .lsp/.cache
 .shadow-cljs
 .cpcache
+.nrepl-port

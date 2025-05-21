@@ -19,6 +19,21 @@
   [state _event]
   state)
 
+(defmulti touch-end :type)
+(defmethod touch-end :default
+  [state _event]
+  state)
+
+(defmulti touch-move :type)
+(defmethod touch-move :default
+  [state _event]
+  state)
+
+(defmulti touch-start :type)
+(defmethod touch-start :default
+  [state _event]
+  state)
+
 (defmulti mouse-released :type)
 (defmethod mouse-released :default
   [state _event]

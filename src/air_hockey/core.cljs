@@ -35,52 +35,33 @@
            ;; sometimes.
            (q/pixel-density (q/display-density))))))))
 
+(defn- touch->clj [rect touch]
+  {:id (.-identifier touch)
+   :x (- (.-clientX touch) (.-left rect))
+   :y (- (.-clientY touch) (.-top rect))})
+
 (defn- add-touch-listener []
-  (let [applet (sketch/current-applet)]
-    (.addEventListener
-     (-> js/document (.querySelector ".p5Canvas"))
-     "touchstart"
-     (fn [e]
-       (let [touch (aget (.-changedTouches e) 0)
-             rect (.getBoundingClientRect (.-target touch))]
-         (sketch/with-sketch applet
-           (swap! (q/state-atom)
-                  (fn [state]
-                    (sf/mouse-pressed
-                     state
-                     {:x (- (.-clientX touch) (.-left rect))
-                      :y (- (.-clientY touch) (.-top rect))
-                      :button :left})))))
-       (.preventDefault e)))
-    (.addEventListener
-     (-> js/document (.querySelector ".p5Canvas"))
-     "touchend"
-     (fn [e]
-       (let [touch (aget (.-changedTouches e) 0)
-             rect (.getBoundingClientRect (.-target touch))]
-         (sketch/with-sketch applet
-           (swap! (q/state-atom)
-                  (fn [state]
-                    (sf/mouse-released
-                     state
-                     {:x (- (.-clientX touch) (.-left rect))
-                      :y (- (.-clientY touch) (.-top rect))})))))
-       (.preventDefault e)))
-    (.addEventListener
-     (-> js/document (.querySelector ".p5Canvas"))
-     "touchmove"
-     (fn [e]
-       (let [touch (aget (.-changedTouches e) 0)
-             rect (.getBoundingClientRect (.-target touch))]
-         (sketch/with-sketch applet
-           (swap! (q/state-atom)
-                  (fn [state]
-                    (sf/mouse-dragged
-                     state
-                     {:x (- (.-clientX touch) (.-left rect))
-                      :y (- (.-clientY touch) (.-top rect))
-                      :button :left})))))
-       (.preventDefault e)))))
+  (let [applet (sketch/current-applet)
+        canvas (-> js/document (.querySelector ".p5Canvas"))]
+    (doseq [[event-name func]
+            [["touchstart" sf/touch-start]
+             ["touchend" sf/touch-end]
+             ["touchmove" sf/touch-move]]]
+      (.addEventListener
+       canvas
+       event-name
+       (fn [e]
+         (let [touch (aget (.-changedTouches e) 0)
+               rect (.getBoundingClientRect (.-target touch))]
+           (sketch/with-sketch applet
+             (swap! (q/state-atom)
+                    (fn [state]
+                      (reduce
+                       (fn [state touch] (func state (touch->clj rect touch)))
+                       state
+                       (.-changedTouches e))))))
+         (.preventDefault e))
+       false))))
 
 (defn setup []
   (add-touch-listener)
@@ -107,3 +88,7 @@
     :mouse-dragged sf/mouse-dragged
     :key-pressed sf/key-pressed
     :middleware [m/fun-mode]))
+
+(comment
+  (sketch/with-sketch the-sketch
+    q/state-atom))
