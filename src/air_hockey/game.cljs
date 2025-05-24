@@ -1,7 +1,57 @@
 (ns air-hockey.game
   (:require
    [air-hockey.sketch-functions :as sf]
-   [quil.core :as q]))
+   [quil.core :as q]
+   [threejs-math :as t]))
+(defn ->vec [x y]
+  (t/Vector2. x y))
+(defn <-vec [v]
+  [(.-x v) (.-y v)])
+(defn v+ [^t/Vector p1 ^t/Vector p2]
+  (.addVectors (t/Vector2.) p1 p2))
+(defn v- [^t/Vector p1 ^t/Vector p2]
+  (.subVectors (t/Vector2.) p1 p2))
+(defn vdiv [^t/Vector p1 divisor]
+  (.divideScalar ^t/Vector (.clone p1) divisor))
+(defn v* [^t/Vector p1 coefficient]
+  (.multiplyScalar ^t/Vector (.clone p1) coefficient))
+(defn ->line [^t/Vector p1 ^t/Vector p2]
+  {:p p1
+   :dir (v- p2 p1)})
+(defn intersection [l1 l2]
+  (let [pos-diff (v- (:p l1) (:p l2))
+        m (t/Matrix3.)
+        _ (.set m
+                (.-x (:dir l1))
+                (.-x (:dir l2))
+                0
+                (.-y (:dir l1))
+                (.-y (:dir l2))
+                0
+                0 0 1) ]
+    (if (zero? (.determinant m))
+      nil
+      (do (.invert m)
+          (.applyMatrix3 pos-diff m)
+          {:t1 (- (.-x pos-diff))
+           :t2 (.-y pos-diff)
+           :p (v+ (v* (:dir l2) (.-y pos-diff)) (:p l2))}))))
+(comment
+  (def l1 (->line (->vec 0 0) (->vec 2 2)))
+  (def l2 (->line (->vec 2 0) (->vec 0 2)))
+  (<-vec (:p (intersection l1 l2)))
+  (-> (->vec 5 3)
+      (v* 2)
+      <-vec)
+  (js/Object.keys t/Vector2)
+  (.-y (v+ (->vec 2 5) (->vec 2 5)))
+  (.-y (v- (->vec 2 5) (->vec 2 5)))
+  (def m (t/Matrix3.))
+  (.set m 2 2 0 2 2 0 0 0 1)
+  (.determinant m)
+  (.toString (.invert m))
+  (def a (js/Array.))
+  (.-elements m))
 
 (defn mk-state [size]
   (sf/add-derived-state
@@ -10,12 +60,14 @@
            :p2 {:pos [50 (- (second size) 50)]}}
     :type :game}))
 
+(defn- move-puck [puck ds]
+  (assoc puck :pos (map + (:pos puck) ds)))
 (defn- update-state [state dt]
   (-> state
       (update :puck update-vals
               (fn [{:keys [velocity] :as puck}]
                 (cond-> puck
-                  velocity (update :pos (partial map + (map (partial * dt) velocity))))))))
+                  velocity (move-puck (map (partial * dt) velocity)))))))
 
 (defmethod sf/update-state :game
   [{:keys [previous-time] :as state}]
