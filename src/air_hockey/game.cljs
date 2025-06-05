@@ -7,7 +7,7 @@
 (extend-protocol IPrintWithWriter
   t/Vector2
   (-pr-writer [obj writer opts]
-    (doseq [part ["#vec [" (.-x obj) " " (.-y obj) "]"]]
+    (doseq [part ["(->vec " (.-x obj) " " (.-y obj) ")"]]
       (-write writer part))))
 
 (defn ->vec [x y]
@@ -70,6 +70,9 @@
 (defn intersection-offset [offset l1 l2]
   (when-let [qwe (not-zero ^js/Number (.dot (:dir l1) (:normal l2)))]
     (let [t-offset (js/Math.abs (/ ^js/Number offset ^js/Number qwe))
+          t2-offset (js/Math.sqrt (- (js/Math.pow (* t-offset (.length (:dir l1))) 2)
+                                     (* offset offset)))
+          _ (println t2-offset)
           pos-diff (v- (:p1 l1) (:p2 l2))
           m (t/Matrix3.)
           _ (.set m
@@ -85,7 +88,7 @@
           t1 (- (- (.-x pos-diff))
                 t-offset)
           t2 (- (.-y pos-diff))]
-      (when (and (< 0 t1 1) (< 0 t2 1))
+      (when (and (< 0 t1 1) (< (- t2-offset) t2 (+ 1 t2-offset)))
         {:t1 t1
          :t2 t2
          :l1 l1
@@ -124,18 +127,9 @@
   (let [d (.dot wall-normal v)]
     (v+ v (v* wall-normal (* d -2)))))
 
-(extend-protocol IPrintWithWriter
-  t/Vector2
-  (-pr-writer [obj writer opts]
-    (doseq [part ["#vec [" (.-x obj) " " (.-y obj) "]"]]
-      (-write writer part))))
-
 (def puck-radius 20)
 
-(defn- move-puck [puck ds lines]
-  (def puck puck)
-  (def ds ds)
-  (def lines lines)
+(defn- move-puck [puck dt ds lines]
   (let [pos (:pos puck)
         velocity (:velocity puck)
         move {:p1 pos
@@ -143,30 +137,29 @@
         first-hit (->> lines
                        (keep (partial intersection-offset puck-radius move))
                        (reduce
-                        (fn [a b]
-                          (if (< (:t1 b) (:t1 a))
-                            b a))))
-
-        _ (def move move)
-        _ (def first-hit first-hit)
-        _ (comment
-            (point-on-line (first lines) (- 1 (:t2 first-hit))))
+                          (fn [a b]
+                            (if (< (:t1 b) (:t1 a))
+                              b a))))
         new-pos (point-on-line move (or (:t1 first-hit) 1))
         puck (assoc puck :pos new-pos)]
     (if first-hit
       (let [puck (assoc puck :velocity
-                        (reflect velocity (:normal (:l2 first-hit))))
+                        (v* (reflect velocity (:normal (:l2 first-hit)))
+                            0.95))
             new-ds (v* (reflect ds (:normal (:l2 first-hit))) (- 1 (:t1 first-hit)))]
-        (move-puck puck
-                   (v* new-ds (- 1 (:t1 first-hit))) lines))
-      puck)))
+        (recur puck
+              dt
+              (v* new-ds (- 1 (:t1 first-hit))) lines))
+      (update puck
+              :velocity
+              v* (js/Math.pow 0.9 (/ 1 dt))))))
 
 (defn- update-state [state dt]
   (-> state
       (update :puck update-vals
               (fn [{:keys [velocity] :as puck}]
                 (cond-> puck
-                  velocity (move-puck (v* velocity dt) (:lines state)))))))
+                  velocity (move-puck dt (v* velocity dt) (:lines state)))))))
 
 (defmethod sf/update-state :game
   [{:keys [previous-time] :as state}]
